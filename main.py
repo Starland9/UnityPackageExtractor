@@ -1,7 +1,7 @@
 import os
 import sys
 
-from PyQt6.QtWidgets import QMainWindow, QApplication, QFileDialog
+from PyQt6.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
 
 from uic import app
 from unitypackage_extractor import extractor
@@ -10,11 +10,12 @@ from unitypackage_extractor import extractor
 class UnityPackageExtractorUi(QMainWindow, app.Ui_MainWindow):
     def __init__(self):
         super().__init__()
+        self.files = None
         self.setupUi(self)
 
         self.btnExtract.setEnabled(False)
-        self.filename = None
-        self.dirName = None
+        self.filenames = None
+        self.dirName = "Extracteds"
 
         self.inputs()
 
@@ -24,11 +25,12 @@ class UnityPackageExtractorUi(QMainWindow, app.Ui_MainWindow):
         self.btnOpenFile.clicked.connect(self.getFile)
 
     def getFile(self):
-        self.filename, _filter = QFileDialog.getOpenFileName(
+        self.filenames, _filter = QFileDialog.getOpenFileNames(
             self, "Choisir le fichier à extraire", filter="*.unitypackage"
         )
-        if self.filename:
-            self.lineFile.setText(self.filename)
+        if self.filenames:
+            self.files = "\n".join(self.filenames)
+            self.filesNames.setText(self.files)
             self.btnExtract.setEnabled(True)
 
     def getDir(self):
@@ -39,11 +41,23 @@ class UnityPackageExtractorUi(QMainWindow, app.Ui_MainWindow):
             self.lineDest.setText(self.dirName)
 
     def extract(self):
-        extractor.extractPackage(
-            self.filename, self.dirName
-        )
-        if self.ckSuppr:
-            os.remove(self.filename)
+        try:
+            for file in self.filenames:
+                extractor.extractPackage(
+                    file, self.dirName,
+                )
+                if self.ckSuppr:
+                    os.remove(file)
+        except Exception as e:
+            show_invalid_files_error(self, e)
+
+
+def show_invalid_files_error(self, e):
+    QMessageBox.critical(
+        self,
+        "Erreur",
+        "Les fichiers ne sont pas valides.\n\n%s" % e,
+    )
 
 
 if __name__ == '__main__':
